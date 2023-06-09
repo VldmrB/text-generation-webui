@@ -169,8 +169,6 @@ def _generate_reply(question, state, eos_token=None, stopping_strings=None, is_c
     if not is_chat:
         question = apply_extensions('input', question)
 
-    if shared.args.verbose:
-        print(f'\n\n{question}\n--------------------\n')
 
     shared.stop_everything = False
     clear_torch_cache()
@@ -186,6 +184,10 @@ def _generate_reply(question, state, eos_token=None, stopping_strings=None, is_c
                 yield reply
         else:
             yield reply
+
+    if shared.args.verbose:
+        name_stripped_reply = reply.removesuffix(shared.settings.get('name1', '')).rstrip()
+        print(f'\n\n{question}{name_stripped_reply}\n{"+" * 140}\n')
 
     if is_stream:
         yield reply
