@@ -15,6 +15,7 @@ from modules.extensions import apply_extensions
 from modules.html_generator import generate_4chan_html, generate_basic_html
 from modules.logging_colors import logger
 from modules.models import clear_torch_cache, local_rank
+from modules.my_module import print_reply
 
 
 def generate_reply(*args, **kwargs):
@@ -185,10 +186,6 @@ def _generate_reply(question, state, eos_token=None, stopping_strings=None, is_c
         else:
             yield reply
 
-    if shared.args.verbose:
-        name_stripped_reply = reply.removesuffix(shared.settings.get('name1', '')).rstrip()
-        print(f'\n\n{question}{name_stripped_reply}\n{"+" * 140}\n')
-
     if is_stream:
         yield reply
 
@@ -241,6 +238,7 @@ def generate_reply_HF(question, original_question, seed, state, eos_token=None, 
     generate_params['stopping_criteria'] = stopping_criteria_list
 
     t0 = time.time()
+    final_reply = ''
     try:
         if not is_chat and not shared.is_seq2seq:
             yield ''
@@ -252,7 +250,9 @@ def generate_reply_HF(question, original_question, seed, state, eos_token=None, 
                 if cuda:
                     output = output.cuda()
 
-            yield get_reply_from_output_ids(output, input_ids, original_question, state, is_chat=is_chat)
+            final_reply = get_reply_from_output_ids(output, input_ids, original_question, state,
+                                                    is_chat=is_chat)
+            yield final_reply
 
         # Stream the reply 1 token at a time.
         # This is based on the trick of using 'stopping_criteria' to create an iterator.
@@ -279,6 +279,8 @@ def generate_reply_HF(question, original_question, seed, state, eos_token=None, 
         t1 = time.time()
         original_tokens = len(original_input_ids[0])
         new_tokens = len(output) - (original_tokens if not shared.is_seq2seq else 0)
+        if final_reply:
+            print_reply(question=question, reply=final_reply, print_question=True)
         print(f'Output generated in {(t1-t0):.2f} seconds ({new_tokens/(t1-t0):.2f} tokens/s, {new_tokens} tokens, context {original_tokens}, seed {seed})')
         return
 
@@ -311,6 +313,8 @@ def generate_reply_custom(question, original_question, seed, state, eos_token=No
         t1 = time.time()
         original_tokens = len(encode(original_question)[0])
         new_tokens = len(encode(original_question + reply)[0]) - original_tokens
+        if reply:
+            print_reply(question=question, reply=reply, print_question=True)
         print(f'Output generated in {(t1-t0):.2f} seconds ({new_tokens/(t1-t0):.2f} tokens/s, {new_tokens} tokens, context {original_tokens}, seed {seed})')
         return
 
