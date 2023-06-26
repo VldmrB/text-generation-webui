@@ -4,10 +4,22 @@ from pathlib import Path
 from modules import shared
 from modules.logging_colors import logger
 
-sys.path.insert(0, str(Path("repositories/exllama")))
-from repositories.exllama.generator import ExLlamaGenerator
-from repositories.exllama.model import ExLlama, ExLlamaCache, ExLlamaConfig
-from repositories.exllama.tokenizer import ExLlamaTokenizer
+try:
+    from exllama.generator import ExLlamaGenerator
+    from exllama.model import ExLlama, ExLlamaCache, ExLlamaConfig
+    from exllama.tokenizer import ExLlamaTokenizer
+except:
+    logger.warning('Exllama module failed to load. Will attempt to load from repositories.')
+    try:
+        from modules.relative_imports import RelativeImport
+
+        with RelativeImport("repositories/exllama"):
+            from generator import ExLlamaGenerator
+            from model import ExLlama, ExLlamaCache, ExLlamaConfig
+            from tokenizer import ExLlamaTokenizer
+    except:
+        logger.error("Could not find repositories/exllama/. Make sure that exllama is cloned inside repositories/ and is up to date.")
+        raise
 
 
 class ExllamaModel:
@@ -17,7 +29,7 @@ class ExllamaModel:
     @classmethod
     def from_pretrained(self, path_to_model):
 
-        path_to_model = Path("models") / Path(path_to_model)
+        path_to_model = Path(f'{shared.args.model_dir}') / Path(path_to_model)
         tokenizer_model_path = path_to_model / "tokenizer.model"
         model_config_path = path_to_model / "config.json"
 
@@ -34,6 +46,8 @@ class ExllamaModel:
 
         config = ExLlamaConfig(str(model_config_path))
         config.model_path = str(model_path)
+        config.max_seq_len = shared.args.max_seq_len
+        config.compress_pos_emb = shared.args.compress_pos_emb
         if shared.args.gpu_split:
             config.set_auto_map(shared.args.gpu_split)
             config.gpu_peer_fix = True
@@ -48,7 +62,7 @@ class ExllamaModel:
         result.model = model
         result.cache = cache
         result.tokenizer = tokenizer
-        self.generator = generator
+        result.generator = generator
         return result, result
 
     def generate_with_streaming(self, prompt, state):
