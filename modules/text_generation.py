@@ -223,6 +223,7 @@ def _generate_reply(question, state, stopping_strings=None, is_chat=False):
     if not is_chat:
         reply = apply_extensions('output', reply)
 
+    print_reply(question=question, reply=reply)
     yield reply
 
 
