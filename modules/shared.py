@@ -47,7 +47,7 @@ settings = {
     'add_bos_token': True,
     'ban_eos_token': False,
     'skip_special_tokens': True,
-    'truncation_length': 2048,
+    'truncation_length': 3400,
     'truncation_length_min': 0,
     'truncation_length_max': 16384,
     'mode': 'chat',
